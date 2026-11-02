@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>发环 PostRing — AI 内容，一键分发全平台</title>
+<meta name="description" content="发环 PostRing：连接 B站与微信公众号官方 API，一次创作，多平台定时发布。AI Agent 可通过 MCP 直接调用。">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+  :root{
+    --cream:#f3eee1; --paper:#faf7ee; --ink:#1a1a1a; --ink-soft:#4a463c;
+    --muted:#8a8578; --line:#e2dccb; --card:#faf7ee;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"Noto Sans CJK SC","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--cream); color:var(--ink); line-height:1.7;
+    -webkit-font-smoothing:antialiased; overflow-x:clip;
+  }
+  body::after{ /* film grain */
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:60; opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  }
+  ::selection{background:#1a1a1a;color:#f3eee1}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+  .eyebrow{font-size:12px;letter-spacing:.42em;color:var(--muted);text-transform:uppercase}
+  /* nav */
+  nav{position:fixed;top:0;left:0;right:0;z-index:50;backdrop-filter:blur(14px);
+    background:rgba(243,238,225,.82);border-bottom:1px solid rgba(26,26,26,.08)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink)}
+  .brand svg{width:30px;height:30px;display:block}
+  .brand b{font-size:17px;letter-spacing:.28em;font-weight:700}
+  .brand small{font-size:10px;letter-spacing:.3em;color:var(--muted)}
+  .navlinks{display:flex;gap:30px;align-items:center}
+  .navlinks a{font-size:14px;color:var(--ink-soft);text-decoration:none;letter-spacing:.08em}
+  .navlinks a:hover{color:var(--ink)}
+  .btn{display:inline-block;padding:12px 30px;border:1px solid var(--ink);border-radius:999px;
+    font-size:14px;letter-spacing:.14em;text-decoration:none;color:var(--ink);
+    transition:background .25s,color .25s;cursor:pointer;background:transparent}
+  .btn:hover{background:var(--ink);color:var(--cream)}
+  .btn.solid{background:var(--ink);color:var(--cream)}
+  .btn.solid:hover{background:#000}
+  .btn.sm{padding:9px 22px;font-size:13px}
+  /* hero */
+  header{padding:170px 0 110px;text-align:center;position:relative}
+  header .mark{width:120px;height:120px;margin:0 auto 34px;display:block}
+  header h1{font-size:clamp(44px,7vw,76px);font-weight:700;letter-spacing:.3em;margin:0 0 8px -0.3em;text-indent:.3em}
+  header .en{font-size:15px;letter-spacing:.55em;color:var(--muted);margin-bottom:34px;text-indent:.55em}
+  header .tag{font-size:clamp(19px,2.6vw,25px);color:var(--ink-soft);letter-spacing:.06em;margin-bottom:16px}
+  header .sub{font-size:15px;color:var(--muted);max-width:620px;margin:0 auto 44px}
+  .cta-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+  .beta-note{margin-top:26px;font-size:13px;color:var(--muted);letter-spacing:.1em}
+  .hero-meta{margin-top:70px;display:flex;justify-content:center;gap:0;flex-wrap:wrap;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .hero-meta div{padding:22px 44px;text-align:center}
+  .hero-meta div+div{border-left:1px solid var(--line)}
+  .hero-meta b{display:block;font-size:22px;letter-spacing:.06em}
+  .hero-meta span{font-size:12px;color:var(--muted);letter-spacing:.2em}
+  /* platforms */
+  .plats{padding:70px 0;text-align:center;border-bottom:1px solid var(--line)}
+  .plats .row{display:flex;justify-content:center;gap:56px;flex-wrap:wrap;margin-top:30px}
+  .plat{font-size:17px;letter-spacing:.24em}
+  .plat small{display:block;font-size:11px;letter-spacing:.2em;color:var(--muted);margin-top:6px}
+  .plat.soon{opacity:.38}
+  /* sections */
+  section{padding:110px 0}
+  .sec-head{text-align:center;margin-bottom:64px}
+  .sec-head h2{font-size:clamp(28px,4vw,40px);letter-spacing:.24em;margin:14px 0 10px -0.24em;text-indent:.24em}
+  .sec-head p{color:var(--muted);font-size:15px;letter-spacing:.06em}
+  /* features */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:38px 32px;
+    transition:transform .3s,box-shadow .3s}
+  .card:hover{transform:translateY(-4px);box-shadow:0 18px 40px -22px rgba(26,26,26,.25)}
+  .card .n{font-size:11px;letter-spacing:.3em;color:var(--muted);margin-bottom:16px}
+  .card h3{font-size:18px;letter-spacing:.12em;margin-bottom:12px;font-weight:700}
+  .card p{font-size:14px;color:var(--ink-soft)}
+  /* steps */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;counter-reset:step}
+  .step{border-top:2px solid var(--ink);padding-top:26px}
+  .step .k{font-size:12px;letter-spacing:.34em;color:var(--muted);margin-bottom:10px}
+  .step h3{font-size:19px;letter-spacing:.1em;margin-bottom:10px}
+  .step p{font-size:14px;color:var(--ink-soft)}
+  /* pricing */
+  .plans{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;align-items:stretch}
+  .plan{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:36px 28px;
+    display:flex;flex-direction:column;position:relative}
+  .plan.hot{border:1.5px solid var(--ink);box-shadow:0 24px 50px -28px rgba(26,26,26,.35)}
+  .plan .flag{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--ink);
+    color:var(--cream);font-size:11px;letter-spacing:.24em;padding:5px 18px;border-radius:999px;white-space:nowrap}
+  .plan h3{font-size:16px;letter-spacing:.22em;margin-bottom:6px}
+  .plan .price{font-size:34px;font-weight:700;margin:10px 0 2px;letter-spacing:.02em}
+  .plan .price small{font-size:13px;font-weight:400;color:var(--muted)}
+  .plan .per{font-size:12px;color:var(--muted);margin-bottom:20px;letter-spacing:.08em}
+  .plan ul{list-style:none;font-size:13.5px;color:var(--ink-soft);margin-bottom:28px;flex:1}
+  .plan ul li{padding:7px 0;border-top:1px dashed var(--line)}
+  .plan ul li:first-child{border-top:none}
+  .plan .btn{text-align:center}
+  .price-note{text-align:center;margin-top:28px;font-size:13px;color:var(--muted);letter-spacing:.06em}
+  /* faq */
+  .faq{max-width:760px;margin:0 auto}
+  .qa{border-bottom:1px solid var(--line)}
+  .qa:first-child{border-top:1px solid var(--line)}
+  .qa button{width:100%;background:none;border:none;text-align:left;padding:24px 6px;font-size:16px;
+    letter-spacing:.06em;color:var(--ink);cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+    font-family:inherit}
+  .qa button .pm{font-size:20px;color:var(--muted);font-weight:300;flex:none;margin-left:20px}
+  .qa .a{max-height:0;overflow:hidden;transition:max-height .35s ease;font-size:14.5px;color:var(--ink-soft);padding:0 6px}
+  .qa.open .a{max-height:220px;padding-bottom:26px}
+  /* footer */
+  footer{border-top:1px solid var(--line);padding:60px 0 44px;margin-top:40px}
+  footer .wrap{display:flex;justify-content:space-between;align-items:flex-start;gap:30px;flex-wrap:wrap}
+  footer .fbrand{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  footer .fbrand svg{width:26px;height:26px}
+  footer p{font-size:13px;color:var(--muted);letter-spacing:.04em}
+  footer .corp{font-size:14px;color:var(--ink-soft);letter-spacing:.1em}
+  /* reveal */
+  .rv{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease}
+  .rv.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}}
+  @media(max-width:900px){
+    .grid,.steps{grid-template-columns:1fr 1fr}
+    .plans{grid-template-columns:1fr 1fr}
+    .navlinks a{display:none}
+  }
+  @media(max-width:600px){
+    .grid,.steps,.plans{grid-template-columns:1fr}
+    .hero-meta div{padding:16px 22px}
+    header{padding:130px 0 80px}
+    section{padding:80px 0}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <svg viewBox="0 0 100 100"><g fill="#1a1a1a" stroke="#1a1a1a"><circle cx="50" cy="64" r="2.6"/><circle cx="37.9" cy="57" r="2.6"/><circle cx="37.9" cy="43" r="2.6"/><circle cx="50" cy="36" r="2.6"/><circle cx="62.1" cy="43" r="2.6"/><circle cx="62.1" cy="57" r="2.6"/><circle cx="75" cy="50" r="2.1"/><circle cx="71.7" cy="62.5" r="2.1"/><circle cx="62.5" cy="71.7" r="2.1"/><circle cx="50" cy="75" r="2.1"/><circle cx="37.5" cy="71.7" r="2.1"/><circle cx="28.3" cy="62.5" r="2.1"/><circle cx="25" cy="50" r="2.1"/><circle cx="28.3" cy="37.5" r="2.1"/><circle cx="37.5" cy="28.3" r="2.1"/><circle cx="50" cy="25" r="2.1"/><circle cx="62.5" cy="28.3" r="2.1"/><circle cx="71.7" cy="37.5" r="2.1"/></g></svg>
+      <span><b>发环</b><br><small>POSTRING</small></span>
+    </a>
+    <div class="navlinks">
+      <a href="#features">功能</a><a href="#how">流程</a><a href="#pricing">定价</a><a href="#faq">问答</a>
+      <a class="btn sm solid" href="#pricing">免费开始</a>
+    </div>
+  </div>
+</nav>
+
+<header id="top">
+  <div class="wrap">
+    <svg class="mark" viewBox="0 0 100 100"><g fill="#1a1a1a" stroke="#1a1a1a"><circle cx="50" cy="64" r="2.6"/><circle cx="37.9" cy="57" r="2.6"/><circle cx="37.9" cy="43" r="2.6"/><circle cx="50" cy="36" r="2.6"/><circle cx="62.1" cy="43" r="2.6"/><circle cx="62.1" cy="57" r="2.6"/><circle cx="75" cy="50" r="2.1"/><circle cx="71.7" cy="62.5" r="2.1"/><circle cx="62.5" cy="71.7" r="2.1"/><circle cx="50" cy="75" r="2.1"/><circle cx="37.5" cy="71.7" r="2.1"/><circle cx="28.3" cy="62.5" r="2.1"/><circle cx="25" cy="50" r="2.1"/><circle cx="28.3" cy="37.5" r="2.1"/><circle cx="37.5" cy="28.3" r="2.1"/><circle cx="50" cy="25" r="2.1"/><circle cx="62.5" cy="28.3" r="2.1"/><circle cx="71.7" cy="37.5" r="2.1"/></g></svg>
+    <p class="eyebrow">PostRing · AI Social Distribution</p>
+    <h1>发环</h1>
+    <p class="en">POSTRING</p>
+    <p class="tag">AI 内容，一键分发全平台</p>
+    <p class="sub">连接 B站与微信公众号官方 API，一次创作，多平台定时发布。<br>AI Agent 可通过 MCP 协议直接调用，把分发变成一条指令。</p>
+    <div class="cta-row">
+      <a class="btn solid" href="#pricing">免费开始</a>
+      <a class="btn" href="#features">了解功能</a>
+    </div>
+    <p class="beta-note">产品内测中 · 预约开通 · 全官方 API，零封号风险</p>
+    <div class="hero-meta">
+      <div><b>官方 API</b><span>ZERO BAN RISK</span></div>
+      <div><b>14</b><span>MCP TOOLS</span></div>
+      <div><b>一次创作</b><span>MULTI POST</span></div>
+      <div><b>定时排期</b><span>SCHEDULED</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="plats">
+  <div class="wrap">
+    <p class="eyebrow">支持平台 · Platforms</p>
+    <div class="row">
+      <div class="plat">哔哩哔哩<small>视频投稿 · 官方 API</small></div>
+      <div class="plat">微信公众号<small>图文群发 · 官方 API</small></div>
+      <div class="plat soon">小红书<small>路线图中</small></div>
+      <div class="plat soon">快手<small>路线图中</small></div>
+    </div>
+  </div>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <p class="eyebrow">Features</p>
+      <h2>为分发而生</h2>
+      <p>不止是一个群发工具，而是一层 AI 可调用的分发基础设施</p>
+    </div>
+    <div class="grid">
+      <div class="card rv"><p class="n">01</p><h3>官方 API · 零封号</h3><p>B站、微信公众号全部走官方开放接口，不碰灰色 RPA 与模拟登录，账号安全是底线。</p></div>
+      <div class="card rv"><p class="n">02</p><h3>MCP Server · Agent 可调用</h3><p>14 个开箱即用的 MCP 工具：创建内容、排期、发布、查询状态。你的 AI Agent 一句话就能完成一次全平台分发。</p></div>
+      <div class="card rv"><p class="n">03</p><h3>一次创作 · 多平台排期</h3><p>写一篇，定时发往多个平台。发布时间、标题、封面可按平台单独微调。</p></div>
+      <div class="card rv"><p class="n">04</p><h3>AI 文案助手</h3><p>输入主题，自动生成多个标题变体并打分，告别"标题想半小时"。</p></div>
+      <div class="card rv"><p class="n">05</p><h3>数据看板</h3><p>发布成功率、各平台分发量、失败原因，一屏看清，分发效果有数可依。</p></div>
+      <div class="card rv"><p class="n">06</p><h3>私有化部署</h3><p>Docker 一键启动，账号凭证加密存储，数据不出内网。企业版支持完全私有化。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how" style="background:var(--paper);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <p class="eyebrow">How it works</p>
+      <h2>三步，开始分发</h2>
+    </div>
+    <div class="steps">
+      <div class="step rv"><p class="k">STEP 01</p><h3>连接账号</h3><p>B站扫码 OAuth 授权，公众号填入 AppID / AppSecret。凭证加密保存，随时可解绑。</p></div>
+      <div class="step rv"><p class="k">STEP 02</p><h3>创作与排期</h3><p>在调度台写好内容，或让 AI Agent 通过 MCP 传入。设定各平台的发布时间。</p></div>
+      <div class="step rv"><p class="k">STEP 03</p><h3>自动分发</h3><p>到点自动投稿 / 群发，失败自动重试并通知。数据回流到看板。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <p class="eyebrow">Pricing</p>
+      <h2>定价</h2>
+      <p>从个人创作者到企业团队，按需选择，随时升级</p>
+    </div>
+    <div class="plans">
+      <div class="plan rv">
+        <h3>免费版</h3><p class="price">¥0<small></small></p><p class="per">个人体验</p>
+        <ul><li>2 个平台账号</li><li>每月 10 次发布</li><li>基础排期功能</li><li>社区支持</li></ul>
+        <a class="btn" href="#faq">开始使用</a>
+      </div>
+      <div class="plan hot rv">
+        <p class="flag">最受欢迎</p>
+        <h3>专业版</h3><p class="price">¥99<small>/月</small></p><p class="per">年付 ¥999（省 2 个月）</p>
+        <ul><li>10 个平台账号</li><li>无限次发布</li><li>AI 文案助手</li><li>MCP 完整调用</li><li>数据看板</li><li>优先支持</li></ul>
+        <a class="btn solid" href="#faq">立即订阅</a>
+      </div>
+      <div class="plan rv">
+        <h3>团队版</h3><p class="price">¥299<small>/月</small></p><p class="per">MCN / 小团队</p>
+        <ul><li>50 个平台账号</li><li>专业版全部功能</li><li>多人协作与权限</li><li>团队数据看板</li></ul>
+        <a class="btn" href="#faq">联系开通</a>
+      </div>
+      <div class="plan rv">
+        <h3>企业版</h3><p class="price">¥9,999<small>/年起</small></p><p class="per">私有化 · 定制</p>
+        <ul><li>私有化部署</li><li>专属客户成功</li><li>定制开发对接</li><li>SLA 保障</li></ul>
+        <a class="btn" href="#faq">商务洽谈</a>
+      </div>
+    </div>
+    <p class="price-note">支持对公转账 · 可开具发票 · 年付享 2 个月优惠</p>
+  </div>
+</section>
+
+<section id="faq" style="padding-top:40px">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <p class="eyebrow">FAQ</p>
+      <h2>常见问题</h2>
+    </div>
+    <div class="faq">
+      <div class="qa rv"><button>发环支持哪些平台？<span class="pm">＋</span></button><div class="a">目前支持哔哩哔哩（视频投稿）与微信公众号（图文群发），均为官方 API 接入。小红书、快手已在路线图中。</div></div>
+      <div class="qa rv"><button>用发环会被平台封号吗？<span class="pm">＋</span></button><div class="a">不会。发环只调用各平台官方开放接口，不使用任何模拟登录或灰色自动化手段，这是我们与市面上 RPA 群发工具的本质区别。</div></div>
+      <div class="qa rv"><button>MCP 是什么？我需要懂技术吗？<span class="pm">＋</span></button><div class="a">MCP 是一种让 AI Agent 调用外部工具的标准协议。普通用户直接在网页调度台操作即可；如果你有自己的 AI 助手或工作流，可以通过 MCP 让它替你完成"写完就发"的全流程。</div></div>
+      <div class="qa rv"><button>我的平台账号安全吗？<span class="pm">＋</span></button><div class="a">B站采用官方 OAuth 扫码授权，我们不接触你的密码；所有凭证经加密存储，可随时解绑。企业版支持私有化部署，数据完全留在你的服务器。</div></div>
+      <div class="qa rv"><button>免费版有什么限制？<span class="pm">＋</span></button><div class="a">免费版可绑定 2 个平台账号，每月 10 次发布，包含基础排期功能。AI 文案、MCP 调用与数据看板需要专业版及以上。</div></div>
+      <div class="qa rv"><button>可以对公付款、开发票吗？<span class="pm">＋</span></button><div class="a">可以。签约主体为闪木（长春）软件开发有限公司，支持对公转账并开具发票，欢迎企业客户咨询。</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <div class="fbrand">
+        <svg viewBox="0 0 100 100"><g fill="#1a1a1a" stroke="#1a1a1a"><circle cx="50" cy="64" r="2.6"/><circle cx="37.9" cy="57" r="2.6"/><circle cx="37.9" cy="43" r="2.6"/><circle cx="50" cy="36" r="2.6"/><circle cx="62.1" cy="43" r="2.6"/><circle cx="62.1" cy="57" r="2.6"/><circle cx="75" cy="50" r="2.1"/><circle cx="71.7" cy="62.5" r="2.1"/><circle cx="62.5" cy="71.7" r="2.1"/><circle cx="50" cy="75" r="2.1"/><circle cx="37.5" cy="71.7" r="2.1"/><circle cx="28.3" cy="62.5" r="2.1"/><circle cx="25" cy="50" r="2.1"/><circle cx="28.3" cy="37.5" r="2.1"/><circle cx="37.5" cy="28.3" r="2.1"/><circle cx="50" cy="25" r="2.1"/><circle cx="62.5" cy="28.3" r="2.1"/><circle cx="71.7" cy="37.5" r="2.1"/></g></svg>
+        <span><b style="letter-spacing:.28em">发环</b> <small style="color:var(--muted);letter-spacing:.3em">POSTRING</small></span>
+      </div>
+      <p>AI 内容，一键分发全平台</p>
+    </div>
+    <div>
+      <p class="corp">闪木（长春）软件开发有限公司</p>
+      <p>© 2026 发环 PostRing · 保留所有权利</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // scroll reveal
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }), {threshold: .12});
+  document.querySelectorAll('.rv').forEach(el => io.observe(el));
+  // faq accordion
+  document.querySelectorAll('.qa button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const qa = btn.parentElement, was = qa.classList.contains('open');
+      document.querySelectorAll('.qa').forEach(q => { q.classList.remove('open'); q.querySelector('.pm').textContent = '＋'; });
+      if (!was) { qa.classList.add('open'); btn.querySelector('.pm').textContent = '－'; }
+    });
+  });
+</script>
+</body>
+</html>
